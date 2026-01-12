@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flyover Animation V4</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #toggleButton {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: #4285f4;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+            transition: all 0.3s;
+        }
+        
+        #toggleButton:hover {
+            background: #3367d6;
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
+        }
+        
+        #toggleButton svg {
+            width: 24px;
+            height: 24px;
+            stroke: white;
+            stroke-width: 2.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        #controlPanel {
+            position: absolute;
+            top: 20px;
+            right: -360px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            width: 320px;
+            transition: right 0.3s ease-out;
+        }
+        
+        #controlPanel.visible {
+            right: 80px;
+        }
+        
+        #controlPanel h3 {
+            margin: 0 0 18px 0;
+            color: #1a1a1a;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        #startButton {
+            background: #4285f4;
+            color: white;
+        }
+        
+        #startButton:hover:not(:disabled) {
+            background: #3367d6;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+        }
+        
+        #startButton:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #resetButton {
+            background: #f1f3f4;
+            color: #5f6368;
+        }
+        
+        #resetButton:hover {
+            background: #e8eaed;
+        }
+        
+        #status {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #5f6368;
+            line-height: 1.5;
+        }
+        
+        .progress {
+            color: #1967d2;
+            font-weight: 500;
+        }
+        
+        .success {
+            color: #1e8e3e;
+            font-weight: 500;
+        }
+        
+        .error {
+            color: #d93025;
+            font-weight: 500;
+        }
+        
+        .speed-control {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .speed-control label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        #speedSlider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        #speedSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4285f4;
+            cursor: pointer;
+        }
+        
+        #speedSlider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4285f4;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .speed-label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 11px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <button id="toggleButton">
+        <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+        </svg>
+    </button>
+    
+    <div id="controlPanel">
+        <h3>Flyover Animation</h3>
+        
+        <div class="input-group">
+            <label>From Location</label>
+            <input type="text" id="fromInput" placeholder="e.g., London, UK" value="">
+        </div>
+        
+        <div class="input-group">
+            <label>To Location (Optional)</label>
+            <input type="text" id="toInput" placeholder="e.g., Paris, France" value="">
+        </div>
+        
+        <div class="speed-control">
+            <label>Animation Speed</label>
+            <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1">
+            <div class="speed-label">
+                <span>Slower</span>
+                <span id="speedValue">1.0x</span>
+                <span>Faster</span>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button id="startButton">Start Flyover</button>
+            <button id="resetButton">Reset View</button>
+        </div>
+        
+        <div id="status">Enter at least one location and click Start Flyover</div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        const map = L.map('map', {
+            center: [54.0, -2.0],
+            zoom: 6,
+            zoomControl: true,
+            preferCanvas: true
+        });
+        
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri',
+            maxZoom: 18
+        }).addTo(map);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
+            attribution: 'OpenStreetMap',
+            maxZoom: 18
+        }).addTo(map);
+        
+        const toggleButton = document.getElementById('toggleButton');
+        const controlPanel = document.getElementById('controlPanel');
+        const statusDiv = document.getElementById('status');
+        const startButton = document.getElementById('startButton');
+        const resetButton = document.getElementById('resetButton');
+        const fromInput = document.getElementById('fromInput');
+        const toInput = document.getElementById('toInput');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        
+        let animationSpeed = 1.0;
+        let panelVisible = false;
+        
+        toggleButton.addEventListener('click', () => {
+            panelVisible = !panelVisible;
+            controlPanel.classList.toggle('visible', panelVisible);
+        });
+        
+        speedSlider.addEventListener('input', (e) => {
+            animationSpeed = parseFloat(e.target.value);
+            speedValue.textContent = animationSpeed.toFixed(1) + 'x';
+        });
+        
+        async function geocode(location) {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&limit=1`);
+            const data = await response.json();
+            if (data.length > 0) {
+                return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            }
+            throw new Error('Location not found: ' + location);
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms / animationSpeed));
+        }
+        
+        async function singleLocationFlyover(coords, locationName) {
+            statusDiv.innerHTML = '<span class="progress">Zooming to ' + locationName + '...</span>';
+            
+            map.flyTo(coords, 15, {
+                duration: 3 / animationSpeed,
+                easeLinearity: 0.25
+            });
+            
+            await sleep(3200);
+            statusDiv.innerHTML = '<span class="success">Arrived at ' + locationName + '</span>';
+        }
+        
+        async function dualLocationFlyover(fromCoords, toCoords, fromName, toName) {
+            const midLat = (fromCoords[0] + toCoords[0]) / 2;
+            const midLng = (fromCoords[1] + toCoords[1]) / 2;
+            
+            const distance = Math.sqrt(
+                Math.pow(toCoords[0] - fromCoords[0], 2) + 
+                Math.pow(toCoords[1] - fromCoords[1], 2)
+            );
+            
+            const closeZoom = 12;
+            const overviewZoom = Math.max(3, Math.min(7, 9 - distance * 4));
+            
+            statusDiv.innerHTML = '<span class="progress">Step 1 of 3: Zooming to origin</span>';
+            map.flyTo(fromCoords, closeZoom, {
+                duration: 2.5 / animationSpeed,
+                easeLinearity: 0.25
+            });
+            await sleep(2700);
+            
+            statusDiv.innerHTML = '<span class="progress">Step 2 of 3: Overview of route</span>';
+            map.flyTo([midLat, midLng], overviewZoom, {
+                duration: 2.5 / animationSpeed,
+                easeLinearity: 0.25
+            });
+            await sleep(2700);
+            
+            statusDiv.innerHTML = '<span class="progress">Step 3 of 3: Zooming to destination</span>';
+            map.flyTo(toCoords, closeZoom, {
+                duration: 3 / animationSpeed,
+                easeLinearity: 0.2
+            });
+            await sleep(3200);
+            
+            statusDiv.innerHTML = '<span class="success">Flyover complete: ' + fromName + ' to ' + toName + '</span>';
+        }
+        
+        startButton.addEventListener('click', async () => {
+            const from = fromInput.value.trim();
+            const to = toInput.value.trim();
+            
+            if (!from) {
+                statusDiv.innerHTML = '<span class="error">Please enter at least a "From Location"</span>';
+                return;
+            }
+            
+            startButton.disabled = true;
+            statusDiv.innerHTML = '<span class="progress">Finding locations...</span>';
+            
+            try {
+                const fromCoords = await geocode(from);
+                
+                if (to) {
+                    const toCoords = await geocode(to);
+                    statusDiv.innerHTML = '<span class="progress">Starting dual flyover...</span>';
+                    await sleep(300);
+                    await dualLocationFlyover(fromCoords, toCoords, from, to);
+                } else {
+                    statusDiv.innerHTML = '<span class="progress">Starting single location view...</span>';
+                    await sleep(300);
+                    await singleLocationFlyover(fromCoords, from);
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = '<span class="error">' + error.message + '</span>';
+            } finally {
+                startButton.disabled = false;
+            }
+        });
+        
+        resetButton.addEventListener('click', () => {
+            map.flyTo([54.0, -2.0], 6, {
+                duration: 2
+            });
+            statusDiv.textContent = 'View reset to initial position';
+        });
+        
+        [fromInput, toInput].forEach(input => {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !startButton.disabled) {
+                    startButton.click();
+                }
+            });
+        });
+        
+        console.log('Flyover V4 Ready');
+    </script>
+</body>
+</html>
